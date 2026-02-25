@@ -83,7 +83,7 @@ class Parser
         $result = [];
 
         foreach ($this->dot($data) as $key => $value) {
-            if (is_array($value) && ! $value) {
+            if (is_array($value) && !$value) {
                 continue;
             }
 
@@ -119,7 +119,7 @@ class Parser
     {
         foreach ($values as &$columns) {
             foreach ($columns as &$value) {
-                if (! is_string($value)) {
+                if (!is_string($value)) {
                     continue;
                 }
 
@@ -157,14 +157,14 @@ class Parser
                             }
                         }
 
-                        if ($result && array_key_exists($result, $data) && ! is_array($data[$result])) {
+                        if ($result && array_key_exists($result, $data) && !is_array($data[$result])) {
                             $result = preg_replace('#\.0(\.|$)#S', '.*$1', $result);
                             return sprintf('[%s%s]', $patterns[1], $result);
                         }
 
                         return $patterns[0];
                     },
-                    $value
+                    $value,
                 );
             }
             unset($value);
@@ -186,7 +186,7 @@ class Parser
         array &$data,
         array &$mergeCells,
         SchemaMapper &$schema,
-        string $lastColumn
+        string $lastColumn,
     ): array {
         $dataSchema = [];
         $shift = 0;
@@ -217,20 +217,20 @@ class Parser
 
             foreach ($columns as $column => $value) {
                 foreach (array_keys($data) as $markerName) {
-                    if (! $this->hasMarker($markerName, $value)) {
+                    if (!$this->hasMarker($markerName, $value)) {
                         continue;
                     }
 
                     $qty = 0;
                     $pattern = $markerName;
-                    while (array_key_exists($pattern = $this->increment($pattern, true), $data)) {
+                    while (array_key_exists($pattern = $this->increment($pattern, true) ?? '', $data)) {
                         $qty++;
                     }
                     $additionRows = max($additionRows, $qty);
 
                     $qty = 0;
                     $pattern = $markerName;
-                    while (array_key_exists($pattern = $this->increment($pattern, false), $data)) {
+                    while (array_key_exists($pattern = $this->increment($pattern, false) ?? '', $data)) {
                         $qty++;
                     }
                     if ($qty) {
@@ -245,7 +245,7 @@ class Parser
             }
 
 
-            if (! $stepRows && $this->shouldBeDeleted($columns, $data)) {
+            if (!$stepRows && $this->shouldBeDeleted($columns, $data)) {
                 $this->deleteRow($schema, $mergeCells, $row + $shift);
                 $shift--;
                 continue;
@@ -256,27 +256,27 @@ class Parser
             }
             $currAdditionRows = $additionRows;
 
-            if (! $additionRows) {
+            if (!$additionRows) {
                 foreach ($columns as $column => $value) {
                     if (
-                        ! preg_match('#\[(\$?\!\s*|\$?\=\s*)?[a-z][a-z\d\_\.]+\]#iS', (string) $value)
-                        && ! preg_match('#^\=[A-Z][A-Z\.\d]#', (string) $value)
+                        !preg_match('#\[(\$?\!\s*|\$?\=\s*)?[a-z][a-z\d\_\.]+\]#iS', (string)$value)
+                        && !preg_match('#^\=[A-Z][A-Z\.\d]#', (string)$value)
                     ) {
                         unset($columns[$column]);
                     }
                 }
 
-                if (! $columns) {
+                if (!$columns) {
                     continue;
                 }
             }
 
-            $curr = $additionColumn;
+            $curr = $additionColumn ?? '';
             $additionColumnValue = ($columns[$curr] ?? null);
 
             $mergeMapX = [];
             foreach ($mergeCells as $item) {
-                if ($additionColumn.($row + $shift) == $item[0][0].$item[0][1] && $item[0][1] == $item[1][1]) {
+                if ($additionColumn . ($row + $shift) == $item[0][0] . $item[0][1] && $item[0][1] == $item[1][1]) {
                     while ($this->isColumnLE($item[0][0], $item[1][0]) && $item[0][0] != $item[1][0]) {
                         $item[0][0]++;
                         $mergeMapX[] = $item[0][0];
@@ -294,7 +294,7 @@ class Parser
 
                 $additionColumnValue = $this->increments($additionColumnValue, false);
                 $columns[$curr] = $additionColumnValue;
-                $schema->copyStyle($additionColumn.($row + $shift), $curr.($row + $shift));
+                $schema->copyStyle($additionColumn . ($row + $shift), $curr . ($row + $shift));
                 $schema->copyWidth($additionColumn, $curr);
 
                 if ($mergeMapX) {
@@ -306,7 +306,7 @@ class Parser
                     }
 
                     $schema->mergeCells(sprintf('%s%s:%s%s', $originalCurr, ($row + $shift), $curr, ($row + $shift)));
-                    $mergeCells[] = [ [$originalCurr, ($row + $shift)], [$curr, ($row + $shift)] ]; // fill in
+                    $mergeCells[] = [[$originalCurr, ($row + $shift)], [$curr, ($row + $shift)]]; // fill in
                 }
             }
 
@@ -316,7 +316,11 @@ class Parser
             if ($additionRows) {
                 $firstColumn = 'A';
                 while ($this->isColumnLE($firstColumn, $lastColumn)) {
-                    if (! isset($columns[$firstColumn]) && ! $this->insideMerge($firstColumn, $originalRow, $mergeCells)) {
+                    if (!isset($columns[$firstColumn]) && !$this->insideMerge(
+                        $firstColumn,
+                        $originalRow,
+                        $mergeCells,
+                    )) {
                         $columns[$firstColumn] = null;
                     }
 
@@ -325,11 +329,11 @@ class Parser
                 uksort($columns, fn ($a, $b) => $this->isColumnLE($a, $b) ? -1 : 1);
 
                 foreach ($columns as $currKey => $currValue) {
-                    $hasMarker = preg_match('#\[([a-z][a-z\d\.\_]+)\]#iS', (string) $currValue);
+                    $hasMarker = preg_match('#\[([a-z][a-z\d\.\_]+)\]#iS', (string)$currValue);
 
                     foreach ($mergeCells as $item) {
-                        if ($currKey.$originalRow == $item[0][0].$item[0][1] && $item[0][1] != $item[1][1]) {
-                            if (! $hasMarker) {
+                        if ($currKey . $originalRow == $item[0][0] . $item[0][1] && $item[0][1] != $item[1][1]) {
+                            if (!$hasMarker) {
                                 unset($columns[$currKey]);
                                 continue;
                             }
@@ -355,18 +359,18 @@ class Parser
                 unset($column);
 
                 $dataSchema[$row + $shift] = array_filter($columns, fn ($item) => $item !== null && $item !== '');
-                if (! $step) {
+                if (!$step) {
                     $this->addRow($schema, $mergeCells, $row + $shift);
                 }
 
                 foreach (array_keys($columns) as $curr) {
-                    $schema->copyStyle($curr.$originalRow, $curr.($row + $shift));
+                    $schema->copyStyle($curr . $originalRow, $curr . ($row + $shift));
 
                     foreach ($mergeCells as $item) {
-                        if ($curr.$originalRow == $item[0][0].$item[0][1]) {
+                        if ($curr . $originalRow == $item[0][0] . $item[0][1]) {
                             $diff = $item[1][1] - $item[0][1];
                             $schema->mergeCells(
-                                sprintf('%s%s:%s%s', $item[0][0], ($row + $shift), $item[1][0], ($row + $shift + $diff))
+                                sprintf('%s%s:%s%s', $item[0][0], ($row + $shift), $item[1][0], ($row + $shift + $diff)),
                             );
                         }
                     }
@@ -383,7 +387,7 @@ class Parser
             if ($stepLeft) {
                 $stepLeft--;
             }
-            if (! $stepLeft) {
+            if (!$stepLeft) {
                 $step = 0;
                 $stepRows = 0;
             } else {
@@ -418,7 +422,7 @@ class Parser
         $map = [];
         foreach ($values as $row => $columns) {
             foreach ($columns as $column => $value) {
-                if (preg_match('#^\=[A-Z][A-Z\.\d]#', (string) $value)) {
+                if (preg_match('#^\=[A-Z][A-Z\.\d]#', (string)$value)) {
                     $map[$row][$column] = $value;
                 }
             }
@@ -432,22 +436,18 @@ class Parser
                         '#([A-Z]+)([\d]+)#S',
                         function ($patterns) use ($action) {
                             if ($action['action'] == 'add') {
-
                                 if ($patterns[2] >= $action['row']) {
                                     return $patterns[1] . ++$patterns[2];
                                 }
-
                             } else {
-
                                 if ($patterns[2] > $action['row']) {
                                     return $patterns[1] . --$patterns[2];
                                 }
-
                             }
 
                             return $patterns[0];
                         },
-                        $value
+                        $value,
                     );
                 }
             }
@@ -473,16 +473,14 @@ class Parser
                         '#([A-Z]+)([\d]+)#S',
                         function ($patterns) use ($action, $row, $prev) {
                             if ($action['action'] == 'add') {
-
                                 if ($action['row'] == $row && ($row - $prev) == ($patterns[2] + 1)) {
                                     return $patterns[1] . (++$patterns[2] + $prev);
                                 }
-
                             }
 
                             return $patterns[0];
                         },
-                        $value
+                        $value,
                     );
                 }
             }
@@ -522,7 +520,7 @@ class Parser
 
                         return $patterns[0];
                     },
-                    $value
+                    $value,
                 );
             }
         }
@@ -574,7 +572,7 @@ class Parser
                     $value = trim($value);
                 }
 
-                if (is_string($value) && ! mb_strlen($value)) {
+                if (is_string($value) && !mb_strlen($value)) {
                     $value = null;
                 }
 
@@ -594,7 +592,7 @@ class Parser
             return true;
         }
 
-        if (! str_ends_with($path, '.')) {
+        if (!str_ends_with($path, '.')) {
             $path .= '.';
         }
 
@@ -614,12 +612,12 @@ class Parser
      */
     private function hasMarker(string $marker, ?string $value): bool
     {
-        $value = preg_replace('#\.\*(\.|$|)#S', '.0$1', (string) $value, -1, $count);
-        if (! $count) {
+        $value = preg_replace('#\.\*(\.|$|)#S', '.0$1', (string)$value, -1, $count);
+        if (!$count) {
             return false;
         }
 
-        if (strpos((string) $value, "[$marker]") !== false) {
+        if (strpos((string)$value, "[$marker]") !== false) {
             return true;
         }
 
@@ -643,12 +641,12 @@ class Parser
 
             preg_match_all("#\[{$prefix}\=\s*([a-z\d\.\_]+)\]#i", $column, $patterns);
             foreach (($patterns[1] ?? []) as $marker) {
-                if (! empty($data[$marker])) {
+                if (!empty($data[$marker])) {
                     continue;
                 }
 
                 foreach ($data as $key => $value) {
-                    if (strpos($key, $marker.'.') === 0 && ! empty($value)) {
+                    if (strpos($key, $marker . '.') === 0 && !empty($value)) {
                         continue 2;
                     }
                 }
@@ -658,12 +656,12 @@ class Parser
 
             preg_match_all("#\[{$prefix}\!\s*([a-z\d\.\_]+)\]#i", $column, $patterns);
             foreach (($patterns[1] ?? []) as $marker) {
-                if (! empty($data[$marker])) {
+                if (!empty($data[$marker])) {
                     return true;
                 }
 
                 foreach ($data as $key => $value) {
-                    if (strpos($key, $marker.'.') === 0 && ! empty($value)) {
+                    if (strpos($key, $marker . '.') === 0 && !empty($value)) {
                         return true;
                     }
                 }
@@ -682,11 +680,11 @@ class Parser
     private function increment(string $markerName, bool $first, int $shift = 1): ?string
     {
         $markerName = explode('.', $markerName);
-        if (! $first) {
+        if (!$first) {
             $markerName = array_reverse($markerName);
         }
 
-        if (! $first) {
+        if (!$first) {
             $qty = 0;
             foreach ($markerName as $item) {
                 if (is_numeric($item)) {
@@ -703,7 +701,7 @@ class Parser
             if (is_numeric($item)) {
                 $item += $shift;
 
-                if (! $first) {
+                if (!$first) {
                     $markerName = array_reverse($markerName);
                 }
 
@@ -733,7 +731,7 @@ class Parser
 
                 return $patterns[0];
             },
-            $value
+            $value,
         );
     }
 
