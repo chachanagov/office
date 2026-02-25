@@ -140,22 +140,17 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
     public function setValue(string $cell, $value, bool $autoCellFormat = true): self
     {
         if ($value instanceof \DateTimeInterface) {
-
             $this->sheet()->setCellValue($cell, \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($value));
             if ($autoCellFormat) {
                 $this->setCellFormat($cell, static::FORMAT_DATE);
             }
-
         } elseif (is_string($value) || is_null($value)) {
-
             if (is_numeric($value)) {
                 $this->sheet()->getCell($cell)->setValueExplicit($value, DataType::TYPE_STRING);
             } else {
                 $this->sheet()->setCellValue($cell, $value);
             }
-
         } else {
-
             if ($autoCellFormat && is_double($value)) {
                 $this->setCellFormat($cell, static::FORMAT_DOUBLE);
             } elseif ($autoCellFormat && is_integer($value)) {
@@ -163,7 +158,6 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
             }
 
             $this->sheet()->getCell($cell)->setValueExplicit($value, DataType::TYPE_NUMERIC);
-
         }
 
         return $this;
@@ -177,7 +171,7 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
     {
         foreach ($data as $row => $columns) {
             foreach ($columns as $column => $value) {
-                $this->setValue($column.$row, $value, $autoCellFormat);
+                $this->setValue($column . $row, $value, $autoCellFormat);
             }
         }
 
@@ -197,10 +191,10 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
 
             foreach ($values as $value) {
                 if ($value !== '' && $value !== null) {
-                    $this->setValue($column.$row, $value);
+                    $this->setValue($column . $row, $value);
                 }
 
-                $column++;
+                $column = str_increment($column);
             }
         }
 
@@ -224,7 +218,7 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
      */
     public function getValues(?string $ceilRange): array
     {
-        if (! $ceilRange) {
+        if (!$ceilRange) {
             $ceilRange = sprintf('A1:%s%s', $this->sheet()->getHighestColumn(), $this->sheet()->getHighestRow());
         }
 
@@ -233,7 +227,7 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
             null,       // Value that should be returned for empty cells
             false,      // Should formulas be calculated (the equivalent of getCalculatedValue() for each cell)
             false,      // Should values be formatted (the equivalent of getFormattedValue() for each cell)
-            true        // Should the array be indexed by cell row and cell column
+            true,        // Should the array be indexed by cell row and cell column
         );
     }
 
@@ -452,7 +446,7 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
     public function copyStyleWithoutFormat(string $cellFrom, string $rangeTo, bool $copyAlignment = false): self
     {
         $style = $this->sheet()->getStyle($cellFrom)->exportArray();
-        if (! $copyAlignment) {
+        if (!$copyAlignment) {
             unset($style['alignment'], $style['numberFormat'], $style['protection']);
         } else {
             unset($style['numberFormat'], $style['protection']);
@@ -460,7 +454,7 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
 
         // @TODO: fixed ?
         if (
-            ! isset($style['borders']['allBorders'])
+            !isset($style['borders']['allBorders'])
             && isset($style['borders']['bottom'], $style['borders']['top'])
             && isset($style['borders']['left'], $style['borders']['right'])
             && $style['borders']['bottom'] == $style['borders']['top']
@@ -489,7 +483,7 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
     {
         foreach ($this->getValues(null) as $row => $rowData) {
             foreach ($rowData as $column => $columnData) {
-                if (($strict && $columnData === $value) || (! $strict && $columnData == $value)) {
+                if (($strict && $columnData === $value) || (!$strict && $columnData == $value)) {
                     return [$column, $row];
                 }
             }
@@ -531,10 +525,13 @@ class PhpSpreadsheetDriver implements SheetsInterface, GridInterface, MixInterfa
             if (
                 $item[0][1] >= $range[0][1] && $item[0][1] <= $range[1][1] // rows
                 && $item[1][1] >= $range[0][1] && $item[1][1] <= $range[1][1]
-                && $this->isColumnGE($item[0][0], $range[0][0]) && $this->isColumnLE($item[0][0], $range[1][0]) // columns
+                && $this->isColumnGE($item[0][0], $range[0][0]) && $this->isColumnLE(
+                    $item[0][0],
+                    $range[1][0],
+                ) // columns
                 && $this->isColumnGE($item[1][0], $range[0][0]) && $this->isColumnLE($item[1][0], $range[1][0])
             ) {
-                $this->mergeCells($item[0][0].($item[0][1] + $shift) . ':' . $item[1][0].($item[1][1] + $shift));
+                $this->mergeCells($item[0][0] . ($item[0][1] + $shift) . ':' . $item[1][0] . ($item[1][1] + $shift));
             }
         }
 

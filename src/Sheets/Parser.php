@@ -324,7 +324,7 @@ class Parser
                         $columns[$firstColumn] = null;
                     }
 
-                    $firstColumn++;
+                    $firstColumn =  str_increment($firstColumn);
                 }
                 uksort($columns, fn ($a, $b) => $this->isColumnLE($a, $b) ? -1 : 1);
 

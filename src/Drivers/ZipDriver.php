@@ -154,8 +154,8 @@ class ZipDriver implements DocumentInterface, GridInterface
             foreach ($titles as $value) {
                 $value = (string) $value;
                 if ($value === '') {
-                    $firstColumn++;
-                    $column++;
+                    $firstColumn =   str_increment($firstColumn);
+                    $column =   str_increment($column);
                     continue;
                 }
 
@@ -169,7 +169,7 @@ class ZipDriver implements DocumentInterface, GridInterface
                 }
 
                 $sheet .= '<c r="'.$column.$row.'" t="s" s="'.$styles['header'].'"><v>'.$curr.'</v></c>';
-                $column++;
+                $column = str_increment($column);
             }
             $sheet .= '</row>';
 
@@ -242,7 +242,7 @@ class ZipDriver implements DocumentInterface, GridInterface
 
                 }
 
-                $column++;
+                $column = str_increment($column);
             }
             $sheet .= '</row>';
         }
@@ -254,7 +254,7 @@ class ZipDriver implements DocumentInterface, GridInterface
                 $width = ($this->gridOptions['width'][$column] ?? 20);
                 $cols .= '<col min="'.$index.'" max="'.$index.'" width="'.$width.'" customWidth="1"/>';
             }
-            $column++;
+            $column = str_increment($column);
         }
 
         // Save buckets
